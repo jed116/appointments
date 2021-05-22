@@ -1,0 +1,104 @@
+########################################################################################################################
+###  - REGISTRATION (patient)
+
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "login": "patiento",
+  "password": "patiento",
+  "secret" : "patiento",
+  "roles" : ["ROLE_PATIENT"]
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+  client.assert(response.contentType.mimeType === "application/json", "Response Content-Type is not application/json");
+});
+%}
+
+########################################################################################################################
+###  - REGISTRATION (doctor)
+
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "login": "medic",
+  "password": "medic",
+  "secret" : "medic",
+  "roles" : ["ROLE_DOCTOR", "ROLE_PATIENT"]
+}
+
+> {%
+  client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+  client.assert(response.contentType.mimeType === "application/json", "Response Content-Type is not application/json");
+});
+%}
+
+########################################################################################################################
+###  - REGISTRATION (admin)
+
+POST {{host}}/api/auth/registration
+Content-Type: application/json
+
+{
+  "login": "admin",
+  "password": "password2",
+  "secret" : "secret2"
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+  client.assert(response.contentType.mimeType === "application/json", "Response Content-Type is not application/json");
+});
+%}
+
+########################################################################################################################
+###  - REGISTRATION (manager)
+
+POST {{host}}/api/auth/registration
+Content-Type: application/json
+
+{
+  "login": "manager",
+  "password": "manager",
+  "secret" : "manager",
+  "roles" : ["ROLE_CHEIF", "ROLE_USER", "ROLE_PATIENT"]
+}
+
+> {%
+  client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+  client.assert(response.contentType.mimeType === "application/json", "Response Content-Type is not application/json");
+});
+%}
+
+
+########################################################################################################################
+### DELETE - Authorized user deletes self account with password confirm
+
+POST {{host}}/api/auth/delete
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "password" : "manager"
+}
+
+########################################################################################################################
+### RESTORE - Anonymous user can restore accaount by registration data
+
+POST {{host}}/api/auth/restore
+Content-Type: application/json
+
+{
+  "login" : "manager",
+  "password" : "manager",
+  "secret" : "manager"
+}
+
+########################################################################################################################

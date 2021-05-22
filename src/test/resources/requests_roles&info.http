@@ -1,0 +1,88 @@
+### - Get user roles
+
+POST {{host}}/api/users/roles
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_PATIENT"],
+  "active": 1
+}
+
+
+### - (De)Activate user roles
+
+POST {{host}}/api/users/roles/active
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "manager",
+  "roles": ["ROLE_PATIENT"],
+  "active": true
+}
+
+########################################################################################################################
+### - GET USER INFO - Authorized user can get roles and information about himself
+
+POST {{host}}/api/users/info/get
+Authorization: {{token}}
+
+###
+
+POST {{host}}/api/users/info/get
+Authorization: 176fbf353b716090b4009c8e915a07aa15f89d891e47f0a9bdab1deab1c3f76d41f43d6ad1bda02237f0bce91024543b382b7f4b2daa0244f3ddc57e827d6c0cab9a216ff1a0043188bf6c3a791a993c6ac463a206e79561c8f62e6da26e64719b9767d901be2032efa667828ffe2a04525aef10b1cef123e0738251b7cd3483a
+
+
+
+########################################################################################################################
+### - SET USER INFO
+
+POST {{host}}/api/users/info/set
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstName"   : "Розарио",
+  "secondName"  : "Агро",
+  "description" : ""
+}
+
+### - SET USER INFO
+
+POST {{host}}/api/users/info/set
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstName"   : "Aнтонио",
+  "secondName"  : "Kомаццо ",
+  "description" : "Фельдшер"
+}
+
+### - SET USER INFO
+
+POST {{host}}/api/users/info/set
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstName"   : "Антон",
+  "secondName"  : "Шпак",
+  "description" : "Стоматолог"
+}
+
+### - SET USER INFO
+
+POST {{host}}/api/users/info/set
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstName"   : "Иван",
+  "secondName"  : "Бунша",
+  "description" : "Зав. отделением"
+}
+
+########################################################################################################################
+

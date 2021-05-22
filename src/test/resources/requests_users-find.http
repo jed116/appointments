@@ -1,0 +1,47 @@
+### - GET USER BY (IN)ACTIVE ROLES (for admins only!)
+
+POST {{host}}/api/users/roles
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_PATIENT"],
+  "active": -1
+}
+
+
+
+### - GET ANY USERS (for admins only!)
+
+POST {{host}}/api/users/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles" : ["ROLE_PATIENT", "ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_ADMIN"],
+  "info" : ["пак", "БУН"]
+}
+
+### - GET USERS (doctors)
+
+POST {{host}}/api/users/find_doctors
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles" : [],
+  "info" : ["Терапевт", "Стоматолог"]
+}
+
+### - GET USERS (patients)
+
+POST {{host}}/api/users/find_patients
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles" : [],
+  "info" : []
+}
+
+###
