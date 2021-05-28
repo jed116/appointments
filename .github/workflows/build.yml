@@ -16,5 +16,5 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.KRSWRK_TOKEN }}
           registry: krswrk.io
-          repository: jed116/appontment
+          repository: jed116/appointments
           tag_with_ref: true
