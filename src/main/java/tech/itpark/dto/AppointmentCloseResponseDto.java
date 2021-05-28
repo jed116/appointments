@@ -2,9 +2,7 @@ package tech.itpark.dto;
 
 import lombok.Value;
 
-import java.sql.Timestamp;
-
 @Value
-public class AppointCreateResponseDto {
+public class AppointmentCloseResponseDto {
     long id;
 }

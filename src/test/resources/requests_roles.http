@@ -1,0 +1,78 @@
+###############################################################################################################  F I N D
+
+POST {{host}}/api/roles/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "attributes": {
+  }
+}
+
+###
+
+POST {{host}}/api/roles/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "attributes": {
+    "isAdmin" : false,
+    "isDoctor" : true
+  }
+}
+
+###
+
+POST {{host}}/api/roles/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "attributes": {
+    "activeDefault" : false,
+    "UNKNOWN" : false
+  }
+}
+
+###########################################################################################################  A P P E N D
+
+POST {{host}}/api/roles/append
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "attributes": {
+    "name" : "ROLE_CHIEF_DOCTOR",
+    "activeDefault" : false,
+    "isAdmin" : false,
+    "isChief" : true,
+    "isDoctor" : true,
+    "isPatient" : false
+  }
+}
+
+### ERROR 1
+
+POST {{host}}/api/roles/append
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "attribute": {
+    "name" : "ROLE_UNKNOWN",
+    "activeDefault" : false,
+    "isPatient" : true
+  }
+}
+
+
+###########################################################################################################  R E M O V E
+
+POST {{host}}/api/roles/remove
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "role" : "ROLE_CHIEF_DOCTOR"
+}

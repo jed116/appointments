@@ -1,0 +1,55 @@
+###############################################################################################################  F I N D
+
+POST {{host}}/api/permission/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "operations": ["find/patients"],
+  "roles": []
+}
+
+###
+
+POST {{host}}/api/permission/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "operations": ["app"],
+  "roles": ["ROLE_DOCTOR"]
+}
+
+###
+
+POST {{host}}/api/permission/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "operations": [],
+  "roles": []
+}
+
+
+###########################################################################################################  A P P E N D
+
+POST {{host}}/api/permission/append
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "operation": "/api/users/find/patients",
+  "roles": ["ROLE_ADMIN"]
+}
+
+###########################################################################################################  R E M O V E
+
+POST {{host}}/api/permission/remove
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "operation": "/api/users/find/patients",
+  "roles": ["ROLE_ADMIN"]
+}

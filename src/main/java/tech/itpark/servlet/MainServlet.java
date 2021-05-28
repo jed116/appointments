@@ -1,6 +1,6 @@
 package tech.itpark.servlet;
 
-import jakarta.servlet.ServletContext;
+import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.UnavailableException;
 import jakarta.servlet.http.HttpServlet;
@@ -9,9 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import tech.itpark.exception.PermissionDeniedException;
+import tech.itpark.http.ContentTypes;
 import tech.itpark.http.Handler;
-import tech.itpark.middleware.Middleware;
-import tech.itpark.security.Auth;
 
 import java.io.IOException;
 import java.util.*;
@@ -21,10 +20,7 @@ public class MainServlet extends HttpServlet {
   private ConfigurableApplicationContext context; // DI context
   private Map<String, Handler> routesPost;
 
-  private Map<String, Set<String>> queriesPermissions;
-
-//  private List<Middleware> middlewares;
-  private final Handler notFoundHandler = (request, response) -> response.sendError(404, "Page not found");
+  private final Handler notFoundHandler = (request, response) -> sendError(404, "NOT FOUND !!!", response);
 
   // init
   // destroy
@@ -40,11 +36,10 @@ public class MainServlet extends HttpServlet {
       servletContext.setAttribute("CONTEXT", context);
 
       routesPost = (Map<String, Handler>) context.getBean("routesPost");
-//      middlewares = (List<Middleware>) context.getBean("middlewares");
-      queriesPermissions = (Map<String, Set<String>>) context.getBean("queriesPermissions");
 
-      // TODO: 1. Annotation Config -> @Component <- your class
-      // TODO: 2. Java Config -> @Configuration @Bean <- not your class, initialization logic
+      Map<String, Set<String>> rolePermissions = (Map<String, Set<String>>) context.getBean("rolePermissions");
+      servletContext.setAttribute("PERMISSIONS", rolePermissions);
+
     } catch (Exception e) {
       throw new UnavailableException(e.getMessage());
     }
@@ -55,35 +50,21 @@ public class MainServlet extends HttpServlet {
     context.close();
   }
 
-
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 //    super.doPost(req, resp);
-
-//    for (final var middleware : middlewares) {
-//      if (middleware.process(request, response)) {
-//        return;
-//      }
-//    }
-
-    final var servletPath = request.getServletPath();
-
-//    if (queriesPermissions.containsKey(servletPath)){
-//      final var auth = (Auth) request.getAttribute("AUTH");
-//      final var roles = queriesPermissions.get(servletPath).toArray(String[]::new);
-//      if (!auth.hasAnyRole(roles)){
-//        int p = 0;
-//        throw new PermissionDeniedException("NOT ALLOWED!!!");
-//      }
-//    }
-
     try {
-      Optional.ofNullable(routesPost.get(servletPath))
+      Optional.ofNullable(routesPost.get(request.getServletPath()))
           .orElse(notFoundHandler)
           .handle(request, response);
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
 
+  private void sendError(int StatusCode, String message, HttpServletResponse response) throws IOException {
+    response.setStatus(StatusCode);
+    response.setContentType(ContentTypes.APPLICATION_JSON);
+    response.getWriter().write((new Gson()).toJson( Map.of("message", message)));
   }
 }

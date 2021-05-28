@@ -2,12 +2,11 @@ package tech.itpark.repository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import tech.itpark.dto.UsersResponseDto;
+import tech.itpark.configuration.AppParams;
 import tech.itpark.exception.DataAccessException;
 import tech.itpark.jdbc.JdbcTemplate;
 import tech.itpark.model.TokenAuth;
 import tech.itpark.model.User;
-import tech.itpark.security.Roles;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -17,14 +16,14 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserRepository {
   // вместо Connection работает с DataSource, который может выдавать Connection по запросу
-  private final DataSource ds;
+  private final DataSource dataSource;
   private final JdbcTemplate template = new JdbcTemplate();
 
 
   public User save(User user) {
     try (
-        final var connection = ds.getConnection();
-        final var statement = connection.prepareStatement("""
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
                 INSERT INTO users(login, password, secret) VALUES (?, ?, ?);
             """, Statement.RETURN_GENERATED_KEYS); // альтернатива RETURNING
     ) {
@@ -49,7 +48,7 @@ public class UserRepository {
 
   public void remove(User user, Boolean removed) {
     try (
-            final var statement = ds.getConnection().prepareStatement("UPDATE users SET removed = ? WHERE id = ?")
+            final var statement = dataSource.getConnection().prepareStatement("UPDATE users SET removed = ? WHERE id = ?")
     ) {
       var index = 0;
       statement.setBoolean(++index,  removed);
@@ -60,9 +59,9 @@ public class UserRepository {
     }
   }
 
-  private Optional<User> get(Optional<String> login, Optional<String> token) {
+  private Optional<User> get(Optional<String> login, Optional<String> token, String roleAnonymous) {
     try (
-            final var connection = ds.getConnection();
+            final var connection = dataSource.getConnection();
             final var statement = connection.prepareStatement("""
         SELECT u.id AS id, u.login AS login, u.password AS password, u.secret AS secret, u.removed AS removed,
           COALESCE(ui.firstname, '') AS firstName, COALESCE(ui.secondname, '') AS secondName, COALESCE(ui.description, '') AS description,
@@ -76,11 +75,11 @@ public class UserRepository {
           """);
     ) {
       var index = 0;
-      statement.setString(++index, Roles.ROLE_ANONYMOUS);
+      statement.setString(++index, roleAnonymous);
       statement.setBoolean(++index, login.isEmpty());
-      statement.setString(++index, !login.isEmpty() ? login.get() : "");
+      statement.setString(++index, login.isPresent() ? login.get() : "");
       statement.setBoolean(++index, token.isEmpty());
-      statement.setString(++index, !token.isEmpty() ? token.get() : "");
+      statement.setString(++index, token.isPresent() ? token.get() : "");
       try (
               final var resultSet = statement.executeQuery();
       ) {
@@ -104,67 +103,19 @@ public class UserRepository {
   }
 
   public Optional<User> getByLogin(String login) {
-    return login != null ? get(Optional.of(login) , Optional.empty()) : Optional.empty();
+    return login != null ? get(Optional.of(login) , Optional.empty(), AppParams.roleAnonymous()) : Optional.empty();
   }
 
   public Optional<User> getByToken(String token) {
-    return token != null ? get(Optional.empty(), Optional.of(token)) : Optional.empty();
+    return token != null ? get(Optional.empty(), Optional.of(token), AppParams.roleAnonymous()) : Optional.empty();
   }
 
 
-  public void saveRoles(long id, Set<String> roles){
-    if (id == 0 || roles.size() == 0){
-      return;
-    }
-    try (
-      final var connection = ds.getConnection();
-      final var statement = connection.prepareStatement("""
-          INSERT INTO user_roles(user_id, role_id, active)
-          SELECT ?, r.id, FALSE FROM roles r WHERE r.name = ANY (?)
-            """, Statement.NO_GENERATED_KEYS);
-    ) {
-
-      String[] arrayString = roles.toArray(String[]::new);
-      Array arrayRoles = connection.createArrayOf("TEXT", arrayString);
-
-      var index = 0;
-      statement.setLong(++index, id);
-      statement.setArray(++index,  arrayRoles);
-      statement.executeUpdate();
-    } catch (SQLException e) {
-      throw new DataAccessException(e);
-    }
-  }
-
-  public void updateRoles(long id, Set<String> roles, boolean active){
-    if (id == 0 || roles.size() == 0){
-      return;
-    }
-    try (
-      final var connection = ds.getConnection();
-      final var statement = connection.prepareStatement("""
-        UPDATE user_roles SET active = ? WHERE user_id = ? AND
-         role_id IN (SELECT r.id FROM roles r WHERE r.name = ANY (?))
-            """, Statement.NO_GENERATED_KEYS);
-    ){
-      String[] arrayString = roles.toArray(String[]::new);
-      Array arrayRoles = connection.createArrayOf("TEXT", arrayString);
-
-      var index = 0;
-      statement.setBoolean(++index, active);
-      statement.setLong(++index, id);
-      statement.setArray(++index,  arrayRoles);
-      statement.executeUpdate();
-
-    }catch (SQLException e) {
-      throw new DataAccessException(e);
-    }
-  }
 
 
   public void updatePassword(User user) {
     try (
-      final var statement = ds.getConnection().prepareStatement("UPDATE users SET password = ? WHERE id = ?")
+      final var statement = dataSource.getConnection().prepareStatement("UPDATE users SET password = ? WHERE id = ?")
     ) {
       var index = 0;
       statement.setString(++index,user.getPassword());
@@ -177,7 +128,7 @@ public class UserRepository {
 
   public void updateSecret(User user) {
     try (
-      final var statement = ds.getConnection().prepareStatement("UPDATE users SET secret = ? WHERE id = ?")
+      final var statement = dataSource.getConnection().prepareStatement("UPDATE users SET secret = ? WHERE id = ?")
     ) {
       var index = 0;
       statement.setString(++index,user.getSecret());
@@ -194,7 +145,7 @@ public class UserRepository {
 
   public void saveToken(TokenAuth auth) {
     try (
-            final var conn = ds.getConnection();
+            final var conn = dataSource.getConnection();
     ) {
       // language=PostgreSQL
       template.update(conn,"INSERT INTO tokens(userId, token) VALUES (?, ?) ON CONFLICT (userId) DO UPDATE SET token = ?",
@@ -206,7 +157,7 @@ public class UserRepository {
 
   public void deleteToken(TokenAuth auth) {
     try(
-      final var conn = ds.getConnection();
+            final var conn = dataSource.getConnection();
     ) {
       // language=PostgreSQL
       template.update(conn, "DELETE FROM tokens WHERE userId = ? AND token = ?;",
@@ -216,12 +167,41 @@ public class UserRepository {
     }
   }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////  R O L E S
 
-  public List<User> getUserRoles(Set<String> roles, int active) {
+  public Set<String> getUserRoles(User user, int active){
+    try (
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
+          SELECT u_r.user_id id, ARRAY_AGG(r.name) roles FROM user_roles u_r
+          JOIN roles r ON u_r.role_id = r.id  AND (u_r.active = ? OR ?)
+          WHERE u_r.user_id = ?
+          GROUP BY u_r.user_id
+        """, Statement.NO_GENERATED_KEYS);
+    ){
+      var index = 0;
+      statement.setBoolean(++index, active > 0);
+      statement.setBoolean(++index, active == 0);
+      statement.setLong(++index, user.getId());
+      try (
+        final var resultSet = statement.executeQuery();
+      ) {
+        if (resultSet.next()) {
+          return Set.of((String[])resultSet.getArray("roles").getArray());
+        }
+        return Set.of();
+      }
+    }catch (SQLException e) {
+      throw new DataAccessException(e);
+    }
+  }
+
+
+  public List<User> getUsersByRoles(Set<String> roles, int active) {
     List<User> result = new ArrayList<>();
     try (
-      final var connection = ds.getConnection();
-      final var statement = connection.prepareStatement("""
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
         SELECT u.id AS id, u.login AS login, '********' AS password, '********' AS secret, u.removed AS removed,
          array_agg(r.name) AS roles FROM  users u
         LEFT JOIN user_roles u_r ON u.id = u_r.user_id
@@ -258,10 +238,60 @@ public class UserRepository {
     return result;
   }
 
+
+  public void appendUserRoles(User user, Set<String> roles) {
+    final var id = user.getId();
+    if (id == 0 || roles.size() == 0){
+      return;
+    }
+    Map<String, Boolean> rolesActive = AppParams.getRolesActiveDefaults(roles);
+    try (
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
+          INSERT INTO user_roles(user_id, role_id, active) 
+          SELECT ?, r.id, ? FROM roles r WHERE r.name = ?
+            """, Statement.NO_GENERATED_KEYS);
+      ) {
+
+      for (Map.Entry<String, Boolean> entry : rolesActive.entrySet()) {
+        var index = 0;
+        statement.setLong(++index, id);
+        statement.setBoolean(++index, entry.getValue());
+        statement.setString(++index, entry.getKey());
+        statement.addBatch();
+      }
+
+      statement.executeBatch();
+
+    } catch (SQLException e) {
+      throw new DataAccessException(e);
+    }
+  }
+
+
+  public void removeUserRoles(User user, Set<String> roles) {
+    final var id = user.getId();
+    if (id == 0 || roles.size() == 0){
+      return;
+    }
+    try(
+      final var connection = dataSource.getConnection();
+    ) {
+      Array arrayRoles = connection.createArrayOf("TEXT", roles.toArray(String[]::new));
+      // language=PostgreSQL
+      template.update(connection, """
+         DELETE FROM user_roles WHERE user_id = ? AND role_id IN (SELECT r.id FROM roles r WHERE r.name = ANY(?) )
+                        """, id , arrayRoles);
+    } catch (SQLException e) {
+      throw new DataAccessException(e);
+    }
+  }
+
+
   public void activeUserRoles(long id, Set<String> roles, boolean active) {
     try (
-      final var connection = ds.getConnection();
-      final var statement = connection.prepareStatement("""
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
         UPDATE user_roles SET active = ? WHERE user_id = ? AND role_id IN (SELECT r.id FROM roles r WHERE r.name = ANY(?)) 
         """);
     ) {
@@ -277,12 +307,13 @@ public class UserRepository {
     } catch (SQLException e) {
       throw new DataAccessException(e);
     }
-
   }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////  I N F O
 
   public void setUserInfo(long id, String firstName, String secondName, String description) {
     try (
-        final var conn = ds.getConnection();
+            final var conn = dataSource.getConnection();
     ) {
       // language=PostgreSQL
       template.update(conn,"""
@@ -298,8 +329,8 @@ public class UserRepository {
   public List<User> findUsers(Set<String> rolesFilter, Set<String> infoFilter) {
     List<User> result = new ArrayList<>();
     try (
-      final var connection = ds.getConnection();
-      final var statement = connection.prepareStatement("""
+            final var connection = dataSource.getConnection();
+            final var statement = connection.prepareStatement("""
         SELECT u.id AS id, u.login AS login, '********' AS password, '********' AS secret,
         COALESCE(ui.firstname, '') AS firstName, COALESCE(ui.secondname, '') AS secondName, COALESCE(ui.description, '') AS description,
         ARRAY_AGG( COALESCE(r.name, ?)) AS roles
@@ -320,7 +351,7 @@ public class UserRepository {
       Array infoConnectionArray = connection.createArrayOf("TEXT", infoFilterStringArray);
 
       var index = 0;
-      statement.setString(++index,  Roles.ROLE_ANONYMOUS);
+      statement.setString(++index,  AppParams.roleAnonymous());
       statement.setBoolean(++index, rolesFilterStringArray.length == 0);
       statement.setArray(++index,   rolesConnectionArray);
       statement.setBoolean(++index, infoFilterStringArray.length == 0);

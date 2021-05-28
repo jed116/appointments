@@ -5,7 +5,7 @@ import lombok.Value;
 import java.util.Set;
 
 @Value
-public class UserRolesRequestDto {
+public class UsersByRolesRequestDto {
   Set<String> roles;
   int active;
 }

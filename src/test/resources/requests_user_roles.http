@@ -1,0 +1,90 @@
+##############################################################################################################   G  E  T
+### - GET roles for user (medic)
+
+POST {{host}}/api/user/roles/get
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "doctor"
+}
+
+##########################################################################################################   A P P E N D
+### - APPEND roles for user (medic)
+
+POST {{host}}/api/user/roles/append
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "doctor",
+  "roles": ["ROLE_CHIEF", "ROLE_PATIENT"]
+}
+
+
+##########################################################################################################   R E M O V E
+### - REMOVE roles for user
+
+POST {{host}}/api/user/roles/remove
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "doctor",
+  "roles": ["ROLE_CHIEF", "ROLE_PATIENT"]
+}
+
+
+################################################################################################   (D E) A C T I V A T E
+
+### - (De)Activate user roles (manager)
+
+POST {{host}}/api/user/roles/active
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "doctor",
+  "roles": ["ROLE_PATIENT"],
+  "active": false
+}
+
+### - (De)Activate user roles (medic)
+
+POST {{host}}/api/user/roles/active
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "medic",
+  "roles": ["ROLE_DOCTOR"],
+  "active": true
+}
+
+### - (De)Activate user roles (patientO)
+
+POST {{host}}/api/user/roles/active
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "patiento",
+  "roles": ["ROLE_CHIEF"],
+  "active": true
+}
+
+
+########################################################################################################### G E T USERS BY ROLES ????
+
+### - Get user roles
+
+POST {{host}}/api/users/roles
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_PATIENT"],
+  "active": 1
+}
+
+

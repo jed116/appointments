@@ -12,6 +12,8 @@ import tech.itpark.service.UserService;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Controller
 @RequiredArgsConstructor
@@ -19,18 +21,17 @@ public class UserController {
   private final UserService service;
   private final List<BodyConverter> converters;
 
-//  public void getById(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//    response.getWriter().write("getById");
-//  }
 
-//  public void deleteById(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//    response.getWriter().write("deleteById");
-//  }
-
-  public void register(HttpServletRequest request, HttpServletResponse response) throws IOException {
-    final var requestDto = read(RegistrationRequestDto.class, request);
-    final var responseDto = service.register(requestDto);
-    write(responseDto, ContentTypes.APPLICATION_JSON, response);
+  public void register(HttpServletRequest request, HttpServletResponse response){
+    try {
+      final var requestDto = read(UserRegisterRequestDto.class, request);
+      final var responseDto = service.register(requestDto);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(400);
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
   }
 
   public void delete(HttpServletRequest request, HttpServletResponse response) {
@@ -48,17 +49,30 @@ public class UserController {
 
 
 
-  public void login(HttpServletRequest request, HttpServletResponse response) throws IOException {
-    final var requestDto = read(LoginRequestDto.class, request);
-    final var responseDto = service.login(requestDto);
-    write(responseDto, ContentTypes.APPLICATION_JSON, response);
+  public void login(HttpServletRequest request, HttpServletResponse response){
+    try {
+      final var requestDto = read(LoginRequestDto.class, request);
+      final var responseDto = service.login(requestDto);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(401); //401=Unauthorized
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+
   }
 
   public void logout(HttpServletRequest request, HttpServletResponse response) {
-    final var token = HttpServletRequestAuthToken.token(request);
-    final var auth = HttpServletRequestAuthToken.auth(request);
-    final var responseDto = service.logout(auth, token);
-    write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    try {
+      final var token = HttpServletRequestAuthToken.token(request);
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var responseDto = service.logout(auth, token);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(401); //401=Unauthorized
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
   }
 
 
@@ -71,39 +85,100 @@ public class UserController {
   }
 
 
-  public void getUserRoles(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//    final var auth = HttpServletRequestAuth.auth(request);
-    final var requestDto = read(UserRolesRequestDto.class, request);
-    final var responseDto = service.getUsersByRoles(requestDto);
-    write(responseDto, ContentTypes.APPLICATION_JSON, response);
+  public void getUsersByRoles(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    try {
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var requestDto = read(UsersByRolesRequestDto.class, request);
+      final var responseDto = service.getUsersByRoles(requestDto, auth);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(403); //403=Forbidden
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+
   }
 
   public void findUsers(HttpServletRequest request, HttpServletResponse response) {
-    final var requestDto = read(UsersRequestDto.class, request);
+    final var requestDto = read(UsersFindRequestDto.class, request);
     final var responseDto = service.findUsers(requestDto);
     write(responseDto, ContentTypes.APPLICATION_JSON, response);
   }
 
   public void findUsers_Doctors(HttpServletRequest request, HttpServletResponse response) {
-    final var requestDto = read(UsersRequestDto.class, request);
+    final var requestDto = read(UsersFindRequestDto.class, request);
     final var responseDto = service.findUsers_Doctors(requestDto);
     write(responseDto, ContentTypes.APPLICATION_JSON, response);
   }
 
   public void findUsers_Patients(HttpServletRequest request, HttpServletResponse response) {
-    final var requestDto = read(UsersRequestDto.class, request);
+    final var requestDto = read(UsersFindRequestDto.class, request);
     final var responseDto = service.findUsers_Patients(requestDto);
     write(responseDto, ContentTypes.APPLICATION_JSON, response);
   }
 
-
-
-
-  public void activeUserRoles(HttpServletRequest request, HttpServletResponse response) {
-    final var requestDto = read(UserRolesActiveRequestDto.class, request);
-    final var responseDto = service.activateUsersRoles(requestDto);
+  public void findUsers_Chiefs(HttpServletRequest request, HttpServletResponse response) {
+    final var requestDto = read(UsersFindRequestDto.class, request);
+    final var responseDto = service.findUsers_Chiefs(requestDto);
     write(responseDto, ContentTypes.APPLICATION_JSON, response);
   }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////// R O L E S
+
+  public void getUserRoles(HttpServletRequest request, HttpServletResponse response) {
+    try {
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var requestDto = read(UserRolesGetRequestDto.class, request);
+      final var responseDto = service.getUserRoles(requestDto, auth);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(403); //403=Forbidden
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+  }
+
+  public void activeUserRoles(HttpServletRequest request, HttpServletResponse response) {
+    try {
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var requestDto = read(UserRolesActiveRequestDto.class, request);
+      final var responseDto = service.activateUserRoles(requestDto, auth);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(403); //403=Forbidden
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+  }
+
+  public void appendUserRoles(HttpServletRequest request, HttpServletResponse response) {
+    try {
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var requestDto = read(UserRolesAppendRemoveRequestDto.class, request);
+      final var responseDto = service.appendUserRoles(requestDto, auth);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(403); //403=Forbidden
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+  }
+
+  public void removeUserRoles(HttpServletRequest request, HttpServletResponse response) {
+    try {
+      final var auth = HttpServletRequestAuthToken.auth(request);
+      final var requestDto = read(UserRolesAppendRemoveRequestDto.class, request);
+      final var responseDto = service.removeUserRoles(requestDto, auth);
+      write(responseDto, ContentTypes.APPLICATION_JSON, response);
+    } catch (RuntimeException e) {
+      e.printStackTrace();
+      response.setStatus(403); //403=Forbidden
+      write(new ErrorResponseDto(e.getMessage()), ContentTypes.APPLICATION_JSON, response);
+    }
+
+  }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////// I N F O
 
   public void setUserInfo(HttpServletRequest request, HttpServletResponse response) {
     final var auth = HttpServletRequestAuthToken.auth(request);
@@ -118,6 +193,7 @@ public class UserController {
     write(responseDto, ContentTypes.APPLICATION_JSON, response);
   }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   public <T> T read(Class<T> clazz, HttpServletRequest request) {
     for (final var converter : converters) {
@@ -142,7 +218,6 @@ public class UserController {
       if (!converter.canWrite(contentType, data.getClass())) {
         continue;
       }
-
       try {
         response.setContentType(contentType);
         converter.write(response.getWriter(), data);

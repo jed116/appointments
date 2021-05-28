@@ -25,7 +25,7 @@ Content-Type: application/json
 
 {
   "login": "manager",
-  "password": "manager"
+  "password": "password"
 }
 
 > {%
@@ -82,7 +82,26 @@ Content-Type: application/json
 
 {
   "login": "patiento",
-  "password": "PATIENTO"
+  "password": "patiento"
+}
+
+> {%
+client.test("Request executed successfully", function() {
+  client.assert(response.status === 200, "Response status is not 200");
+  client.assert(response.contentType.mimeType === "application/json", "Response Content-Type is not application/json");
+  client.global.set("token", response.body.token);
+});
+%}
+
+########################################################################################################################
+### - LOGIN  (medic - new)
+
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "login": "medic",
+  "password": "medic"
 }
 
 > {%

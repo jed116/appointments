@@ -5,7 +5,6 @@ import lombok.Value;
 import java.sql.Timestamp;
 
 @Value
-public class AppointCreateRequestDto {
+public class AppointmentOpenRequestDto {
     Timestamp date_time;
-    long doctor_id;
 }

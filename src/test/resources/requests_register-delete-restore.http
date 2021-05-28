@@ -8,7 +8,7 @@ Content-Type: application/json
   "login": "patiento",
   "password": "patiento",
   "secret" : "patiento",
-  "roles" : ["ROLE_PATIENT"]
+  "roles" : ["ROLE_PATIENT", "ROLE_CHIEF"]
 }
 
 > {%
@@ -19,7 +19,7 @@ client.test("Request executed successfully", function() {
 %}
 
 ########################################################################################################################
-###  - REGISTRATION (doctor)
+###  - REGISTRATION (doctor - medic)
 
 POST {{host}}/api/auth/register
 Content-Type: application/json
@@ -28,7 +28,7 @@ Content-Type: application/json
   "login": "medic",
   "password": "medic",
   "secret" : "medic",
-  "roles" : ["ROLE_DOCTOR", "ROLE_PATIENT"]
+  "roles" : ["ROLE_DOCTOR"]
 }
 
 > {%
@@ -41,7 +41,7 @@ Content-Type: application/json
 ########################################################################################################################
 ###  - REGISTRATION (admin)
 
-POST {{host}}/api/auth/registration
+POST {{host}}/api/auth/register
 Content-Type: application/json
 
 {
@@ -60,14 +60,14 @@ client.test("Request executed successfully", function() {
 ########################################################################################################################
 ###  - REGISTRATION (manager)
 
-POST {{host}}/api/auth/registration
+POST {{host}}/api/auth/register
 Content-Type: application/json
 
 {
   "login": "manager",
-  "password": "manager",
-  "secret" : "manager",
-  "roles" : ["ROLE_CHEIF", "ROLE_USER", "ROLE_PATIENT"]
+  "password": "password",
+  "secret" : "secret",
+  "roles" : ["ROLE_CHIEF", "ROLE_PATIENT"]
 }
 
 > {%

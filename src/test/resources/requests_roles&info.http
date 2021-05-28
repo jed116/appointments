@@ -10,7 +10,7 @@ Content-Type: application/json
 }
 
 
-### - (De)Activate user roles
+### - (De)Activate user roles (manager)
 
 POST {{host}}/api/users/roles/active
 Authorization: {{token}}
@@ -18,7 +18,19 @@ Content-Type: application/json
 
 {
   "login" : "manager",
-  "roles": ["ROLE_PATIENT"],
+  "roles": ["ROLE_CHIEF"],
+  "active": true
+}
+
+### - (De)Activate user roles (medic)
+
+POST {{host}}/api/users/roles/active
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "login" : "medic",
+  "roles": ["ROLE_DOCTOR"],
   "active": true
 }
 
@@ -45,7 +57,7 @@ Content-Type: application/json
 {
   "firstName"   : "Розарио",
   "secondName"  : "Агро",
-  "description" : ""
+  "description" : "Итальянский мафиози"
 }
 
 ### - SET USER INFO
@@ -56,7 +68,7 @@ Content-Type: application/json
 
 {
   "firstName"   : "Aнтонио",
-  "secondName"  : "Kомаццо ",
+  "secondName"  : "Ломаццо ",
   "description" : "Фельдшер"
 }
 
@@ -81,8 +93,21 @@ Content-Type: application/json
 {
   "firstName"   : "Иван",
   "secondName"  : "Бунша",
-  "description" : "Зав. отделением"
+  "description" : "Управдом"
 }
+
+### - SET USER INFO
+
+POST {{host}}/api/users/info/set
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "firstName"   : "Жорж",
+  "secondName"  : "Милославский",
+  "description" : "Артист больших и малых театров"
+}
+
 
 ########################################################################################################################
 

@@ -5,8 +5,7 @@ import lombok.Value;
 import java.util.Set;
 
 @Value
-public class UserRolesActiveRequestDto {
+public class UserRolesAppendRemoveRequestDto {
   String login;
   Set<String> roles;
-  boolean active;
 }

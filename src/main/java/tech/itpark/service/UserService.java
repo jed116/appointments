@@ -2,6 +2,7 @@ package tech.itpark.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tech.itpark.configuration.AppParams;
 import tech.itpark.crypto.PasswordHasher;
 import tech.itpark.crypto.TokenGenerator;
 import tech.itpark.dto.*;
@@ -12,9 +13,10 @@ import tech.itpark.model.User;
 import tech.itpark.repository.UserRepository;
 import tech.itpark.security.AuthProvider;
 import tech.itpark.security.Auth;
-import tech.itpark.security.Roles;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,14 +24,6 @@ public class UserService implements AuthProvider {
   private final UserRepository repository;
   private final PasswordHasher passwordHasher;
   private final TokenGenerator tokenGenerator;
-
-//  public Optional<User> getById() {
-//    return Optional.empty();
-//  }
-//
-//  public User save(User user) {
-//    return user;
-//  }
 
   @Override
   public Auth provide(String token) {
@@ -40,35 +34,15 @@ public class UserService implements AuthProvider {
             ;
   }
 
-  public RegistrationResponseDto register(RegistrationRequestDto request) {
-    // --1. Свободен ли логин
-    // 2. Длина пароля и т.д. и т.п.
-    // 3. Хеш пароля
-    // -> 4. Сохранение в БД
-    // TODO: Чистота данных
-    // TODO: " admin ", ADMIN, aDmIN
-    // TODO: sanitizing (очистка данных) <- bad idea
-    // TODO: pattern matching (whitelist/allowlist)
-    // TODO: abcdef...0-9 (best practice)
-    // Regexp:
-    // TODO: https://regex101.com/
-    // TODO: ^ смотрим с начала строки
-    // TODO: $ смотрим до конца строки
-    // TODO: ^admin$
-    // TODO: [abc...zA...Z0...9]
-    // TODO: [a-zA-Z0-9]
-    // TODO: квантификаторы:
-    // TODO: ? - 0-1 символ
-    // TODO: * - 0+ символ
-    // TODO: + - 1+ символ
-    // TODO: {min}, {min, max}
+
+
+  public UserRegisterResponseDto register(UserRegisterRequestDto request) {
     if (request.getLogin() == null) {
       throw new RuntimeException("login can't be null");
     }
 
     if (!request.getLogin().matches("^[a-z0-9]{5,10}$")) {
       throw new RuntimeException("bad login");
-//      throw new BadLoginException();
     }
 
     if (request.getPassword() == null) {
@@ -87,23 +61,31 @@ public class UserService implements AuthProvider {
       throw new RuntimeException("minimal length of secret must be greater than 5");
     }
 
+    final var user = repository.getByLogin(request.getLogin());
+    if(user.isPresent()){
+      throw new RuntimeException("User with login '" + user.get().getLogin() + "' already exist!!!");
+    }
+
+    final var registerUserRoles = request.getRoles();
+    final var roleAttributes = AppParams.getRoleAttributes();
+    final var unknownRolesForUser = registerUserRoles.stream().filter(r -> !roleAttributes.containsKey(r)).collect(Collectors.toSet());
+    if (unknownRolesForUser.size() > 0){
+      throw new RuntimeException("UNKNOWN ROLES: " + String.join(", ", unknownRolesForUser) + " !!!");
+    }
+
     final var passwordHash = passwordHasher.hash(request.getPassword());
     final var secretHash = passwordHasher.hash(request.getSecret());
 
     // register
-    final var saved = repository.save(
-        new User(0, request.getLogin(), passwordHash, secretHash, false, request.getRoles(), "", "", "")
+    final var registerUser = repository.save(
+        new User(0, request.getLogin(), passwordHash, secretHash, false, registerUserRoles, "", "", "")
     );
-
-    long saved_id = saved.getId();
+    long saved_id = registerUser.getId();
     if (saved_id != 0){
-      repository.saveRoles(saved_id, saved.getRoles());
-      if (saved.getRoles().contains(Roles.ROLE_PATIENT)){
-        repository.updateRoles(saved_id, Set.of(Roles.ROLE_PATIENT), true  );
-      }
+      repository.appendUserRoles(registerUser, registerUser.getRoles());
     }
 
-    return new RegistrationResponseDto(saved.getId());
+    return new UserRegisterResponseDto(registerUser.getId());
   }
 
   public UnregisterResponseDto delete(UnregisterRequestDto requestDto, String token) {
@@ -133,7 +115,7 @@ public class UserService implements AuthProvider {
     return new RestoreResponseDto(user.getId());
   }
 
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   public LoginResponseDto login(LoginRequestDto request) {
     final var user = repository.getByLogin(request.getLogin())
@@ -162,6 +144,8 @@ public class UserService implements AuthProvider {
     return new LogoutResponseDto(id);
   }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   public UpdatePasswordResponseDto updatePassword(UpdatePasswordRequestDto requestDto) {
     User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("wrong login!"));
     if (!passwordHasher.matches(user.getSecret(), requestDto.getSecret())){
@@ -183,15 +167,103 @@ public class UserService implements AuthProvider {
   }
 
 
-  public UsersResponseDto getUsersByRoles(UserRolesRequestDto  requestDto){
-    return new UsersResponseDto(repository.getUserRoles(requestDto.getRoles(), requestDto.getActive()));
+  public UsersByRolesResponseDto getUsersByRoles(UsersByRolesRequestDto requestDto, Auth auth){
+    long user_id = auth.getId();
+    if (user_id <= 0){
+      throw new RuntimeException("USER NOT AUTHORIZED !!!");
+    }
+    User user = (User) auth;
+    final var userRoles = user.getRoles();
+    boolean isAdmin = AppParams.isAdmin(userRoles);
+    if (!isAdmin){
+      throw new PermissionDeniedException("ADMIN OPERATION !!!");
+    }
+
+    return new UsersByRolesResponseDto(repository.getUsersByRoles(requestDto.getRoles(), requestDto.getActive()));
   }
 
-  public UserRolesActiveResponseDto activateUsersRoles(UserRolesActiveRequestDto requestDto) {
-    User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("wrong login!"));
-    repository.activeUserRoles(user.getId(), requestDto.getRoles(), requestDto.isActive());
+////////////////////////////////////////////////////////////////////////////////////////////////////////////// R O L E S
+
+  public UserRolesGetResponseDto getUserRoles(UserRolesGetRequestDto requestDto, Auth auth) {
+    long user_id = auth.getId();
+    if (user_id <= 0){
+      throw new RuntimeException("USER NOT AUTHORIZED !!!");
+    }
+
+    User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("WRONG LOGIN!"));
+    final var userRolesActive = repository.getUserRoles(user, 1);
+    final var userRolesInActive = repository.getUserRoles(user, -1);
+
+    return new UserRolesGetResponseDto(userRolesActive, userRolesInActive);
+  }
+
+  public UserRolesAppendRemoveResponseDto appendUserRoles(UserRolesAppendRemoveRequestDto requestDto, Auth auth) {
+    long user_id = auth.getId();
+    if (user_id <= 0){
+      throw new RuntimeException("USER NOT AUTHORIZED !!!");
+    }
+
+    final var rolesToAppend = requestDto.getRoles();
+    final var unknownRolesToAppend = AppParams.filterUnknownRoles(rolesToAppend);
+    if (unknownRolesToAppend.size() > 0){
+      throw new RuntimeException("UNKNOWN ROLES: " + String.join(", ", unknownRolesToAppend) + " !!!");
+    }
+    User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("WRONG LOGIN!"));
+    final var userRoles = repository.getUserRoles(user, 0);
+    final var assignedUserRoles = rolesToAppend.stream().filter(r -> userRoles.contains(r)).collect(Collectors.toSet());
+    if (assignedUserRoles.size() > 0){
+      throw new RuntimeException("The user '" + user.getLogin() + "' has already been assigned the following roles: " + String.join(", ", assignedUserRoles) + " !!!");
+    }
+
+    repository.appendUserRoles(user, rolesToAppend);
+
+    return new UserRolesAppendRemoveResponseDto(user.getId());
+  }
+
+  public UserRolesAppendRemoveResponseDto removeUserRoles(UserRolesAppendRemoveRequestDto requestDto, Auth auth) {
+
+    final var rolesToDelete = requestDto.getRoles();
+    final var unknownRolesToDelete = AppParams.filterUnknownRoles(rolesToDelete);
+    if (unknownRolesToDelete.size() > 0){
+      throw new RuntimeException("UNKNOWN ROLES: " + String.join(", ", unknownRolesToDelete) + " !!!");
+    }
+    User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("WRONG LOGIN!"));
+    final var userRoles = repository.getUserRoles(user, 0);
+    final var notAssignedUserRoles = rolesToDelete.stream().filter(r -> !userRoles.contains(r)).collect(Collectors.toSet());
+    if (notAssignedUserRoles.size() > 0){
+      throw new RuntimeException("The user '" + user.getLogin() + "' was not assigned the following roles: " + String.join(", ", notAssignedUserRoles) + " !!!");
+    }
+
+    repository.removeUserRoles(user, rolesToDelete);
+
+    return new UserRolesAppendRemoveResponseDto(user.getId());
+  }
+
+  public UserRolesActiveResponseDto activateUserRoles(UserRolesActiveRequestDto requestDto, Auth auth) {
+    long user_id = auth.getId();
+    if (user_id <= 0){
+      throw new RuntimeException("USER NOT AUTHORIZED !!!");
+    }
+
+    final var rolesForUser = requestDto.getRoles();
+    final var roleAttributes = AppParams.getRoleAttributes();
+    final var unknownRolesForUser = rolesForUser.stream().filter(r -> !roleAttributes.containsKey(r)).collect(Collectors.toSet());
+    if (unknownRolesForUser.size() > 0){
+      throw new RuntimeException("UNKNOWN ROLES: " + String.join(", ", unknownRolesForUser) + " !!!");
+    }
+
+    User user = repository.getByLogin(requestDto.getLogin()).orElseThrow(() -> new RuntimeException("WRONG LOGIN!"));
+    final var userRoles = repository.getUserRoles(user, 0);
+    final var notUserRoles = rolesForUser.stream().filter(r -> !userRoles.contains(r)).collect(Collectors.toSet());
+    if (notUserRoles.size() > 0){
+      throw new RuntimeException("USER " +user.getLogin() + " IS NOT ASSIGNED FOLLOWING ROLE: " + String.join(", ", notUserRoles) + " !!!");
+    }
+
+    repository.activeUserRoles(user.getId(), rolesForUser, requestDto.isActive());
     return new UserRolesActiveResponseDto(user.getId());
   }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////  I N F O
 
   public UserInfoResponseDto setUserInfo(UserInfoRequestDto requestDto, Auth auth) {
     long id = auth.getId();
@@ -209,20 +281,25 @@ public class UserService implements AuthProvider {
                                       user.getRoles());
   }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////  F I N D
 
-
-
-  public UsersResponseDto findUsers(UsersRequestDto requestDto) {
-    return new UsersResponseDto(repository.findUsers(requestDto.getRoles(), requestDto.getInfo()));
+  public UsersByRolesResponseDto findUsers(UsersFindRequestDto requestDto) {
+    return new UsersByRolesResponseDto(repository.findUsers(requestDto.getRoles(), requestDto.getInfo()));
   }
 
-  public UsersResponseDto findUsers_Doctors(UsersRequestDto requestDto) {
-    return new UsersResponseDto(repository.findUsers(Set.of(Roles.ROLE_DOCTOR), requestDto.getInfo()));
+  public UsersByRolesResponseDto findUsers_Patients(UsersFindRequestDto requestDto) {
+    final var roles = AppParams.rolesPatient();
+    return new UsersByRolesResponseDto(repository.findUsers(roles, requestDto.getInfo()));
   }
 
-  public UsersResponseDto findUsers_Patients(UsersRequestDto requestDto) {
-    return new UsersResponseDto(repository.findUsers(Set.of(Roles.ROLE_PATIENT), requestDto.getInfo()));
+  public UsersByRolesResponseDto findUsers_Doctors(UsersFindRequestDto requestDto) {
+    final var roles = AppParams.rolesDoctor();
+    return new UsersByRolesResponseDto(repository.findUsers(roles, requestDto.getInfo()));
   }
 
+  public UsersByRolesResponseDto findUsers_Chiefs(UsersFindRequestDto requestDto) {
+    final var roles = AppParams.rolesChief();
+    return new UsersByRolesResponseDto(repository.findUsers(roles, requestDto.getInfo()));
+  }
 
 }

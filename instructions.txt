@@ -1,0 +1,7 @@
+﻿docker-compose:
+1. db (postgresql) -> mapping (5400:5432)
+2. ws (app -> dbcp -> db) -> -DJDBC_DATABASE_URL="jdbc:postgresql://db:5432/db?user=app&password=pass"
+
+docker-compose up db (без ws)
+
+CATALINA_OPTS=-DJDBC_DATABASE_URL="jdbc:postgresql://localhost:5400/db?user=app&password=pass"

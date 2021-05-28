@@ -1,0 +1,53 @@
+### - Appointment operations
+
+POST {{host}}/api/appointment/open
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "date_time": "2021-06-01T12:00:00+03:00"
+}
+
+###
+
+POST {{host}}/api/appointment/book
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "id": 3
+}
+
+###
+
+POST {{host}}/api/appointment/unbook
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "id": 2
+}
+
+###
+
+POST {{host}}/api/appointment/close
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "id": 2,
+  "accessCode": "88888888",
+  "result": "appointment closed!"
+}
+
+###
+
+POST {{host}}/api/appointment/cancel
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "id": 2
+}
+
+###

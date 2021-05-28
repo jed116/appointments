@@ -1,12 +1,12 @@
 package tech.itpark.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Value;
 import tech.itpark.model.User;
 
 import java.util.List;
-import java.util.Set;
 
-@Value
-public class UsersResponseDto {
-  List<User> users;
+@AllArgsConstructor
+public class ErrorResponseDto {
+  String message;
 }

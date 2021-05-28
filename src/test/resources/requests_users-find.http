@@ -6,10 +6,32 @@ Content-Type: application/json
 
 {
   "roles": ["ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_PATIENT"],
+  "active": 1
+}
+
+###
+
+POST {{host}}/api/users/roles
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles": ["ROLE_DOCTOR", "ROLE_CHEIF", "ROLE_PATIENT"],
   "active": -1
 }
 
 
+
+### - GET ANY USERS (for admins only!)
+
+POST {{host}}/api/users/find
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "roles" : [],
+  "info" : []
+}
 
 ### - GET ANY USERS (for admins only!)
 
@@ -24,18 +46,18 @@ Content-Type: application/json
 
 ### - GET USERS (doctors)
 
-POST {{host}}/api/users/find_doctors
+POST {{host}}/api/users/find/doctors
 Authorization: {{token}}
 Content-Type: application/json
 
 {
   "roles" : [],
-  "info" : ["Терапевт", "Стоматолог"]
+  "info" : []
 }
 
 ### - GET USERS (patients)
 
-POST {{host}}/api/users/find_patients
+POST {{host}}/api/users/find/patients
 Authorization: {{token}}
 Content-Type: application/json
 
