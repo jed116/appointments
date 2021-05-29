@@ -14,7 +14,7 @@ jobs:
         uses: docker/build-push-action@v1
         with:
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.KRSWRK_TOKEN }}
           registry: ghcr.io
           repository: jed116/appointments
           tag_with_ref: true
